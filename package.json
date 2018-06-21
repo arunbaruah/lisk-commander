@@ -29,9 +29,9 @@
 		"lint:fix": "npm run lint -- --fix",
 		"test":
 			"if [ -z $JENKINS_HOME ]; then npm run test:local; else npm run test:ci; fi",
-		"test:local": "NODE_ENV=test nyc mocha test/commands",
+		"test:local": "NODE_ENV=test nyc mocha test",
 		"test:ci":
-			"NODE_ENV=test nyc --exclude \"**/node_modules/** coverage/**\" mocha test/commands",
+			"NODE_ENV=test nyc --exclude \"**/node_modules/** coverage/**\" mocha test",
 		"test:watch": "npm run test:local -- --watch",
 		"test:watch:min": "npm run test:watch -- --reporter=min",
 		"cover":
@@ -42,7 +42,7 @@
 		"cover:ci":
 			"npm run cover:base -- --reporter=text-lcov mocha | coveralls -v",
 		"cover:test":
-			"NODE_ENV=test nyc --include \"test/**\" --exclude \"**/node_modules/** coverage/**\" mocha test/commands",
+			"NODE_ENV=test nyc --include \"test/**\" --exclude \"**/node_modules/** coverage/**\" mocha test",
 		"prebuild": "if test -d dist; then rm -r dist; fi",
 		"build": "babel src -d dist",
 		"postpack": "rm -f oclif.manifest.json",

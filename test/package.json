@@ -5,5 +5,8 @@
 		"bin": "lisk",
 		"plugins": ["@oclif/plugin-help"]
 	},
-	"files": ["/bin", "/npm-shrinkwrap.json", "/oclif.manifest.json", "/dist"]
+	"files": ["/bin", "/npm-shrinkwrap.json", "/oclif.manifest.json", "/dist"],
+	"dependencies": {
+		"lisk-elements": "xxx"
+	}
 }
