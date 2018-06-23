@@ -9,6 +9,7 @@
 	"dependencies": {
 		"lisk-elements": "xxx",
 		"lockfile": "xxx",
+		"inquirer": "xxx",
 		"chalk": "xxx"
 	}
 }
