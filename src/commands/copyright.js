@@ -34,12 +34,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 export default class CopyrightCommand extends BaseCommand {
 	async run() {
-		this.log({ copyright });
+		this.print({ copyright });
 	}
 }
 
 CopyrightCommand.description = `
 Displays copyright notice.
-...
-Example: copyright
 `;
+CopyrightCommand.examples = ['copyright'];
