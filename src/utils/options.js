@@ -82,7 +82,7 @@ const options = {
 		description: secondPassphraseDescription,
 	},
 	password: {
-		char: '2',
+		char: 'w',
 		description: passwordDescription,
 	},
 	unvotes: {
