@@ -16,33 +16,102 @@
 import { expect, test } from '../../test';
 import * as config from '../../../src/utils/config';
 import * as print from '../../../src/utils/print';
+import * as api from '../../../src/utils/api';
+import * as inputUtils from '../../../src/utils/input/utils';
 
 describe('signature:broadcast', () => {
-	const defaultConfig = {
-		api: {
-			network: 'main',
-			nodes: ['http://localhost:4000'],
+	const defaultSignatureString =
+		'{"transactionId":"abcd1234","publicKey":"abcd1234","signature":"abcd1234"}';
+	const defaultSignature = JSON.parse(defaultSignatureString);
+	const defaultAPIResponse = {
+		data: {
+			message: 'sent',
 		},
 	};
 
 	const printMethodStub = sandbox.stub();
+	const apiClientStub = {
+		signatures: {
+			broadcast: sandbox.stub().resolves(defaultAPIResponse),
+		},
+	};
+
 	const setupStub = test
 		.stub(print, 'default', sandbox.stub().returns(printMethodStub))
-		.stub(config, 'getConfig', sandbox.stub().returns(defaultConfig));
+		.stub(config, 'getConfig', sandbox.stub().returns({}))
+		.stub(api, 'default', sandbox.stub().returns(apiClientStub))
+		.stub(
+			inputUtils,
+			'getRawStdIn',
+			sandbox.stub().resolves(defaultSignatureString),
+		);
 
-	setupStub
-		.stdout()
-		.command(['config:show'])
-		.it('should call print with the user config', () => {
-			expect(print.default).to.be.called;
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+	describe('signature:broadcast', () => {
+		setupStub
+			.stub(inputUtils, 'getRawStdIn', sandbox.stub().resolves([]))
+			.stdout()
+			.command(['signature:broadcast'])
+			.catch(error =>
+				expect(error.message).to.contain('No signature was provided.'),
+			)
+			.it('should throw an error when no signature was provided');
+	});
 
-	setupStub
-		.stdout()
-		.command(['config:show', '--json', '--pretty'])
-		.it('should call print with json', () => {
-			expect(print.default).to.be.calledWith({ json: true, pretty: true });
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+	describe('signature:broadcast signature', () => {
+		setupStub
+			.stdout()
+			.command(['signature:broadcast', '{invalid: json, format: bad}'])
+			.catch(error =>
+				expect(error.message).to.contain(
+					'Could not parse signature JSON. Did you use the `--json` option?',
+				),
+			)
+			.it('should throw an error when invalid signature was provided');
+
+		setupStub
+			.stdout()
+			.command(['signature:broadcast', defaultSignatureString])
+			.it('should broadcast the signature', () => {
+				expect(apiClientStub.signatures.broadcast).to.be.calledWithExactly(
+					defaultSignature,
+				);
+				return expect(printMethodStub).to.be.calledWithExactly(
+					defaultAPIResponse.data,
+				);
+			});
+	});
+
+	describe('echo signature | signature:broadcast', () => {
+		setupStub
+			.stub(
+				inputUtils,
+				'getRawStdIn',
+				sandbox.stub().resolves(['{invalid: json, format: bad}']),
+			)
+			.stdout()
+			.command(['signature:broadcast'])
+			.catch(error =>
+				expect(error.message).to.contain(
+					'Could not parse signature JSON. Did you use the `--json` option?',
+				),
+			)
+			.it('should throw an error when invalid signature was provided');
+
+		setupStub
+			.stub(
+				inputUtils,
+				'getRawStdIn',
+				sandbox.stub().resolves([defaultSignatureString]),
+			)
+			.stdout()
+			.command(['signature:broadcast'])
+			.it('should broadcast the signature', () => {
+				expect(apiClientStub.signatures.broadcast).to.be.calledWithExactly(
+					defaultSignature,
+				);
+				return expect(printMethodStub).to.be.calledWithExactly(
+					defaultAPIResponse.data,
+				);
+			});
+	});
 });
