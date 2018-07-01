@@ -16,33 +16,137 @@
 import { expect, test } from '../../test';
 import * as config from '../../../src/utils/config';
 import * as print from '../../../src/utils/print';
+import * as api from '../../../src/utils/api';
+import * as getInputsFromSources from '../../../src/utils/input';
 
 describe('node:forging', () => {
-	const defaultConfig = {
-		api: {
-			network: 'main',
-			nodes: ['http://localhost:4000'],
+	const defaultInputs = {
+		password: '123',
+	};
+	const defaultPublicKey =
+		'479b0fdb56199a211062203fa5c431bafe6a0a628661fc58f30f3105f2b17332';
+
+	const defaultAPIResponse = {
+		data: {
+			publicKey: defaultPublicKey,
+			forging: true,
 		},
 	};
 
 	const printMethodStub = sandbox.stub();
+	const apiClientStub = {
+		node: {
+			updateForgingStatus: sandbox.stub().resolves(defaultAPIResponse),
+		},
+	};
 	const setupStub = test
 		.stub(print, 'default', sandbox.stub().returns(printMethodStub))
-		.stub(config, 'getConfig', sandbox.stub().returns(defaultConfig));
+		.stub(config, 'getConfig', sandbox.stub().returns({}))
+		.stub(api, 'default', sandbox.stub().returns(apiClientStub))
+		.stub(
+			getInputsFromSources,
+			'default',
+			sandbox.stub().resolves(defaultInputs),
+		);
 
-	setupStub
-		.stdout()
-		.command(['node:forging'])
-		.it('should call print with the user config', () => {
-			expect(print.default).to.be.called;
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+	describe('node:forging', () => {
+		setupStub
+			.stdout()
+			.command(['node:forging'])
+			.catch(error =>
+				expect(error.message).to.contain('Missing 2 required arg'),
+			)
+			.it('should throw an error');
+	});
 
-	setupStub
-		.stdout()
-		.command(['node:forging', '--json', '--pretty'])
-		.it('should call print with json', () => {
-			expect(print.default).to.be.calledWith({ json: true, pretty: true });
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+	describe('node:forging status', () => {
+		setupStub
+			.stdout()
+			.command(['node:forging', 'disable'])
+			.catch(error =>
+				expect(error.message).to.contain('Missing 1 required arg'),
+			)
+			.it('should throw an error without public key');
+
+		setupStub
+			.stdout()
+			.command(['node:forging', 'wrong'])
+			.catch(error =>
+				expect(error.message).to.contain(
+					'Expected wrong to be one of: enable, disable',
+				),
+			)
+			.it('should throw an error when status is not enable or disable');
+	});
+
+	describe('node:forging status publicKey', () => {
+		setupStub
+			.stdout()
+			.command([
+				'node:forging',
+				'enable',
+				'479b0fdb56199a211062203fa5c431bafe6a0a628661fc58f30fxxxxxxxxxxxx',
+			])
+			.catch(error =>
+				expect(error.message).to.contain(
+					'Argument must be a valid hex string.',
+				),
+			)
+			.it('should throw an error with invalid public key');
+
+		setupStub
+			.stdout()
+			.command(['node:forging', 'enable', defaultPublicKey])
+			.it(
+				'should update the forging status of the node with the public key',
+				() => {
+					expect(getInputsFromSources.default).to.be.calledWithExactly({
+						password: {
+							source: undefined,
+						},
+					});
+					expect(
+						apiClientStub.node.updateForgingStatus,
+					).to.be.calledWithExactly({
+						password: defaultInputs.password,
+						publicKey: defaultPublicKey,
+						forging: true,
+					});
+					return expect(printMethodStub).to.be.calledWithExactly(
+						defaultAPIResponse.data,
+					);
+				},
+			);
+	});
+
+	describe('node:forging status publicKey --password=pass:123', () => {
+		setupStub
+			.stdout()
+			.command([
+				'node:forging',
+				'disable',
+				defaultPublicKey,
+				'--password=pass:123',
+			])
+			.it(
+				'should disable the forging status of the node with the public key and the password from the flag',
+				() => {
+					expect(getInputsFromSources.default).to.be.calledWithExactly({
+						password: {
+							source: 'pass:123',
+						},
+					});
+					expect(
+						apiClientStub.node.updateForgingStatus,
+					).to.be.calledWithExactly({
+						password: defaultInputs.password,
+						publicKey: defaultPublicKey,
+						forging: false,
+					});
+					return expect(printMethodStub).to.be.calledWithExactly(
+						defaultAPIResponse.data,
+					);
+				},
+			);
+	});
 });

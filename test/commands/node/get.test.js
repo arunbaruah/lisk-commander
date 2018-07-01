@@ -16,33 +16,118 @@
 import { expect, test } from '../../test';
 import * as config from '../../../src/utils/config';
 import * as print from '../../../src/utils/print';
+import * as api from '../../../src/utils/api';
 
 describe('node:get', () => {
-	const defaultConfig = {
-		api: {
-			network: 'main',
-			nodes: ['http://localhost:4000'],
+	const defaultGetConstantsResponse = {
+		data: {
+			version: '1.0.0',
+		},
+	};
+	const defaultGetStatusResponse = {
+		data: {
+			height: 3,
+		},
+	};
+	const defaultForgingStatusResponse = {
+		data: [
+			{
+				publicKey:
+					'2ca9a7143fc721fdc540fef893b27e8d648d2288efa61e56264edf01a2c23079',
+				forging: true,
+			},
+		],
+	};
+
+	const apiClientStub = {
+		node: {
+			getConstants: sandbox.stub().resolves(defaultGetConstantsResponse),
+			getStatus: sandbox.stub().resolves(defaultGetStatusResponse),
+			getForgingStatus: sandbox.stub().resolves(defaultForgingStatusResponse),
 		},
 	};
 
 	const printMethodStub = sandbox.stub();
 	const setupStub = test
 		.stub(print, 'default', sandbox.stub().returns(printMethodStub))
-		.stub(config, 'getConfig', sandbox.stub().returns(defaultConfig));
+		.stub(config, 'getConfig', sandbox.stub().returns({}))
+		.stub(api, 'default', sandbox.stub().returns(apiClientStub));
 
-	setupStub
-		.stdout()
-		.command(['node:get'])
-		.it('should call print with the user config', () => {
-			expect(print.default).to.be.called;
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+	describe('node:get', () => {
+		setupStub
+			.stub(
+				apiClientStub.node,
+				'getConstants',
+				sandbox.stub().rejects(new Error('getConstants failed')),
+			)
+			.stdout()
+			.command(['node:get'])
+			.catch(error => expect(error.message).to.contain('getConstants failed'))
+			.it('should throw error when getConstants fails');
 
-	setupStub
-		.stdout()
-		.command(['node:get', '--json', '--pretty'])
-		.it('should call print with json', () => {
-			expect(print.default).to.be.calledWith({ json: true, pretty: true });
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+		setupStub
+			.stub(
+				apiClientStub.node,
+				'getStatus',
+				sandbox.stub().rejects(new Error('getStatus failed')),
+			)
+			.stdout()
+			.command(['node:get'])
+			.catch(error => expect(error.message).to.contain('getStatus failed'))
+			.it('should throw error when getStatus fails');
+
+		setupStub
+			.stdout()
+			.command(['node:get'])
+			.it('should get the node status without forging status', () => {
+				expect(apiClientStub.node.getForgingStatus).not.to.be.called;
+				return expect(printMethodStub).to.be.calledWithExactly(
+					Object.assign(
+						{},
+						defaultGetConstantsResponse.data,
+						defaultGetStatusResponse.data,
+					),
+				);
+			});
+	});
+
+	describe('node:get --all', () => {
+		const errorMessage = 'Error 403: Unautorized';
+		setupStub
+			.stub(
+				apiClientStub.node,
+				'getForgingStatus',
+				sandbox.stub().rejects(new Error(errorMessage)),
+			)
+			.stdout()
+			.command(['node:get', '--all'])
+			.it('should get the node status with forging status error', () => {
+				return expect(printMethodStub).to.be.calledWithExactly(
+					Object.assign(
+						{},
+						defaultGetConstantsResponse.data,
+						defaultGetStatusResponse.data,
+						{
+							forgingStatus: errorMessage,
+						},
+					),
+				);
+			});
+
+		setupStub
+			.stdout()
+			.command(['node:get', '--all'])
+			.it('should get the node status with forging status error', () => {
+				return expect(printMethodStub).to.be.calledWithExactly(
+					Object.assign(
+						{},
+						defaultGetConstantsResponse.data,
+						defaultGetStatusResponse.data,
+						{
+							forgingStatus: defaultForgingStatusResponse.data,
+						},
+					),
+				);
+			});
+	});
 });

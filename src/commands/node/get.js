@@ -19,7 +19,7 @@ import getAPIClient from '../../utils/api';
 
 export default class GetCommand extends BaseCommand {
 	async run() {
-		const { flags: { forging } } = this.parse(GetCommand);
+		const { flags: { all } } = this.parse(GetCommand);
 		const client = getAPIClient(this.userConfig.api);
 		const baseInfo = await Promise.all([
 			client.node.getConstants(),
@@ -27,7 +27,7 @@ export default class GetCommand extends BaseCommand {
 		]).then(([constantsResponse, statusResponse]) =>
 			Object.assign({}, constantsResponse.data, statusResponse.data),
 		);
-		if (!forging) {
+		if (!all) {
 			return this.print(baseInfo);
 		}
 		const fullInfo = await client.node
@@ -46,7 +46,7 @@ export default class GetCommand extends BaseCommand {
 
 GetCommand.flags = {
 	...BaseCommand.flags,
-	forging: flagParser.boolean({
+	all: flagParser.boolean({
 		description: 'Additionally provides information about forging status.',
 	}),
 };
@@ -55,4 +55,4 @@ GetCommand.description = `
 Gets information about a node.
 `;
 
-GetCommand.examples = ['node:get', 'node:get --forging'];
+GetCommand.examples = ['node:get', 'node:get --all'];
