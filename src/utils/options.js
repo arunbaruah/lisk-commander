@@ -72,6 +72,7 @@ const options = {
 	},
 	noSignature: {
 		description: noSignatureDescription,
+		allowNo: true,
 	},
 	passphrase: {
 		char: 'p',
@@ -87,9 +88,11 @@ const options = {
 	},
 	unvotes: {
 		description: unvotesDescription,
+		parse: input => input.split(','),
 	},
 	votes: {
 		description: votesDescription,
+		parse: input => input.split(','),
 	},
 };
 
