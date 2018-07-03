@@ -28,13 +28,17 @@ const secondPublicKeyDescription = `Specifies a source for providing a second pu
 	- --second-public-key 790049f919979d5ea42cca7b7aa0812cbae8f0db3ee39c1fe3cef18e25b67951
 `;
 
-const getTransactionInput = async () => {
-	const rawStdIn = await getRawStdIn();
-	if (rawStdIn.length <= 0) {
-		throw new ValidationError('No transaction was provided.');
-	}
-	return rawStdIn[0];
-};
+const getTransactionInput = async () =>
+	getRawStdIn()
+		.then(rawStdIn => {
+			if (rawStdIn.length <= 0) {
+				throw new ValidationError('No transaction was provided.');
+			}
+			return rawStdIn[0];
+		})
+		.catch(() => {
+			throw new ValidationError('No transaction was provided.');
+		});
 
 const processSecondPublicKey = async secondPublicKey =>
 	secondPublicKey.includes(':') ? getData(secondPublicKey) : secondPublicKey;

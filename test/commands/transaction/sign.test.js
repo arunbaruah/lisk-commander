@@ -48,18 +48,19 @@ describe('transaction:sign', () => {
 	};
 
 	const printMethodStub = sandbox.stub();
-	const setupStub = test
-		.stub(print, 'default', sandbox.stub().returns(printMethodStub))
-		.stub(config, 'getConfig', sandbox.stub().returns({}))
-		.stub(elements.default.transaction, 'utils', transactionUtilStub)
-		.stub(
-			getInputsFromSources,
-			'default',
-			sandbox.stub().resolves(defaultInputs),
-		);
+	const setupStub = () =>
+		test
+			.stub(print, 'default', sandbox.stub().returns(printMethodStub))
+			.stub(config, 'getConfig', sandbox.stub().returns({}))
+			.stub(elements.default.transaction, 'utils', transactionUtilStub)
+			.stub(
+				getInputsFromSources,
+				'default',
+				sandbox.stub().resolves(defaultInputs),
+			);
 
 	describe('transaction:sign', () => {
-		setupStub
+		setupStub()
 			.stub(
 				inputUtils,
 				'getRawStdIn',
@@ -74,7 +75,7 @@ describe('transaction:sign', () => {
 	});
 
 	describe('transaction:sign transaction', () => {
-		setupStub
+		setupStub()
 			.stdout()
 			.command(['transaction:sign', invalidTransaction])
 			.catch(error =>
@@ -82,7 +83,7 @@ describe('transaction:sign', () => {
 			)
 			.it('should throw an error');
 
-		setupStub
+		setupStub()
 			.stdout()
 			.command(['transaction:sign', JSON.stringify(defaultTransaction)])
 			.it('should take transaction from arg to sign', () => {
@@ -105,7 +106,7 @@ describe('transaction:sign', () => {
 	});
 
 	describe('transaction:sign transaction --passphrase=pass:123', () => {
-		setupStub
+		setupStub()
 			.stdout()
 			.command([
 				'transaction:sign',
@@ -137,7 +138,7 @@ describe('transaction:sign', () => {
 	});
 
 	describe('transaction:sign transaction --passphrase=pass:123 --second-passphrase=pass:456', () => {
-		setupStub
+		setupStub()
 			.stdout()
 			.command([
 				'transaction:sign',
@@ -173,7 +174,7 @@ describe('transaction:sign', () => {
 	});
 
 	describe('transaction | transaction:sign', () => {
-		setupStub
+		setupStub()
 			.stub(inputUtils, 'getRawStdIn', sandbox.stub().resolves([]))
 			.stdout()
 			.command(['transaction:sign'])
@@ -182,7 +183,7 @@ describe('transaction:sign', () => {
 			)
 			.it('should throw an error when stdin is empty');
 
-		setupStub
+		setupStub()
 			.stub(
 				inputUtils,
 				'getRawStdIn',
@@ -195,7 +196,7 @@ describe('transaction:sign', () => {
 			)
 			.it('should throw an error when std is an invalid JSON format');
 
-		setupStub
+		setupStub()
 			.stdout()
 			.stub(
 				inputUtils,
@@ -223,7 +224,7 @@ describe('transaction:sign', () => {
 	});
 
 	describe('transaction | transaction:sign --passphrase=pass:123', () => {
-		setupStub
+		setupStub()
 			.stdout()
 			.stub(
 				inputUtils,
@@ -256,7 +257,7 @@ describe('transaction:sign', () => {
 	});
 
 	describe('transaction | transaction:sign --passphrase=pass:123 --second-passphrase=pass:456', () => {
-		setupStub
+		setupStub()
 			.stdout()
 			.stub(
 				inputUtils,

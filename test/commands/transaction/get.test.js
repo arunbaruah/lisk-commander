@@ -27,12 +27,13 @@ describe('transaction:get', () => {
 	};
 	const printMethodStub = sandbox.stub();
 	const apiClientStub = sandbox.stub();
-	const setupStub = test
-		.stub(print, 'default', sandbox.stub().returns(printMethodStub))
-		.stub(config, 'getConfig', sandbox.stub().returns({ api: apiConfig }))
-		.stub(api, 'default', sandbox.stub().returns(apiClientStub));
+	const setupStub = () =>
+		test
+			.stub(print, 'default', sandbox.stub().returns(printMethodStub))
+			.stub(config, 'getConfig', sandbox.stub().returns({ api: apiConfig }))
+			.stub(api, 'default', sandbox.stub().returns(apiClientStub));
 
-	setupStub
+	setupStub()
 		.stdout()
 		.command(['transaction:get'])
 		.catch(error => expect(error.message).to.contain('Missing 1 required arg'))
@@ -45,7 +46,7 @@ describe('transaction:get', () => {
 			name: 'i am owner',
 		};
 
-		setupStub
+		setupStub()
 			.stdout()
 			.stub(query, 'default', sandbox.stub().resolves(queryResult))
 			.command(['transaction:get', transaction])
@@ -72,7 +73,7 @@ describe('transaction:get', () => {
 			},
 		];
 
-		setupStub
+		setupStub()
 			.stdout()
 			.stub(query, 'default', sandbox.stub().resolves(queryResult))
 			.command(['transaction:get', transactions.join(',')])

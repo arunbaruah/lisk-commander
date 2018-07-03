@@ -49,13 +49,14 @@ describe('transaction:broadcast', () => {
 			broadcast: sandbox.stub().resolves(defaultAPIResponse),
 		},
 	};
-	const setupStub = test
-		.stub(print, 'default', sandbox.stub().returns(printMethodStub))
-		.stub(config, 'getConfig', sandbox.stub().returns({}))
-		.stub(api, 'default', sandbox.stub().returns(apiClientStub));
+	const setupStub = () =>
+		test
+			.stub(print, 'default', sandbox.stub().returns(printMethodStub))
+			.stub(config, 'getConfig', sandbox.stub().returns({}))
+			.stub(api, 'default', sandbox.stub().returns(apiClientStub));
 
 	describe('transaction:broadcast', () => {
-		setupStub
+		setupStub()
 			.stub(
 				inputUtils,
 				'getRawStdIn',
@@ -70,7 +71,7 @@ describe('transaction:broadcast', () => {
 	});
 
 	describe('transaction:broadcast transaction', () => {
-		setupStub
+		setupStub()
 			.stdout()
 			.command(['transaction:broadcast', wrongTransaction])
 			.catch(error =>
@@ -80,7 +81,7 @@ describe('transaction:broadcast', () => {
 			)
 			.it('should throw an error with invalid transaction');
 
-		setupStub
+		setupStub()
 			.stdout()
 			.command(['transaction:broadcast', JSON.stringify(defaultTransaction)])
 			.it('should broadcast the transaction', () => {
@@ -94,7 +95,7 @@ describe('transaction:broadcast', () => {
 	});
 
 	describe('transaction:broadcast transaction --second-public-key', () => {
-		setupStub
+		setupStub()
 			.stdout()
 			.command(['transaction:broadcast'])
 			.catch(error =>
@@ -104,7 +105,7 @@ describe('transaction:broadcast', () => {
 	});
 
 	describe('transaction | transaction:broadcast', () => {
-		setupStub
+		setupStub()
 			.stdout()
 			.stub(inputUtils, 'getRawStdIn', sandbox.stub().resolves([]))
 			.command(['transaction:broadcast'])
@@ -113,7 +114,7 @@ describe('transaction:broadcast', () => {
 			)
 			.it('should throw an error with invalid transaction from stdin');
 
-		setupStub
+		setupStub()
 			.stdout()
 			.stub(
 				inputUtils,
@@ -128,7 +129,7 @@ describe('transaction:broadcast', () => {
 			)
 			.it('should throw an error with invalid transaction from stdin');
 
-		setupStub
+		setupStub()
 			.stdout()
 			.stub(
 				inputUtils,
