@@ -13,45 +13,70 @@
  * Removal or modification of this copyright notice is prohibited.
  *
  */
+import { flags as flagParser } from '@oclif/command';
 import BaseCommand from '../../base';
-import getAPIClient from '../../utils/api';
-import query from '../../utils/query';
+import { ValidationError } from '../../utils/error';
+import TransferCommand from './create/transfer';
+import SecondpassphraseCommand from './create/secondpassphrase';
+import VoteCommand from './create/vote';
+import DelegateCommand from './create/delegate';
+import MultisignatureCommand from './create/multisignature';
+
+const MAX_ARG_NUM = 3;
+
+const resolveFlags = (accumulated, [key, value]) => {
+	if (key === 'type') {
+		return accumulated;
+	}
+	if (typeof value === 'string') {
+		accumulated.push(`--${key}`, value);
+		return accumulated;
+	}
+	const boolKey = value === false ? `--no-${key}` : `--${key}`;
+	accumulated.push(boolKey);
+	return accumulated;
+};
 
 export default class CreateCommand extends BaseCommand {
 	async run() {
-		const { args: { ids } } = this.parse(CreateCommand);
-		const req =
-			ids.length === 1
-				? { limit: 1, id: ids[0] }
-				: ids.map(id => ({
-						limit: 1,
-						id,
-					}));
-		const client = getAPIClient(this.userConfig.api);
-		const results = await query(client, 'transactions', req);
-		this.print(results);
+		const { argv, flags } = this.parse(CreateCommand);
+		const { type } = flags;
+		const resolvedFlags = Object.entries(flags).reduce(resolveFlags, []);
+		if (type === '0' || type === 'transfer') {
+			await TransferCommand.run([...argv, ...resolvedFlags]);
+		} else if (type === '1' || type === 'secondpassphrase') {
+			await SecondpassphraseCommand.run([...argv, ...resolvedFlags]);
+		} else if (type === '2' || type === 'vote') {
+			await VoteCommand.run([...argv, ...resolvedFlags]);
+		} else if (type === '3' || type === 'delegate') {
+			await DelegateCommand.run([...argv, ...resolvedFlags]);
+		} else if (type === '4' || type === 'multisignature') {
+			await MultisignatureCommand.run([...argv, ...resolvedFlags]);
+		} else {
+			throw new ValidationError('Invalid transaction type.');
+		}
 	}
 }
 
-CreateCommand.args = [
-	{
-		name: 'ids',
-		required: true,
-		description:
-			'Comma separated transaction id(s) which you want to get the information of.',
-		parse: input => input.split(','),
-	},
-];
-
 CreateCommand.flags = {
 	...BaseCommand.flags,
+	type: flagParser.string({
+		description: 'type of transaction to create',
+		required: true,
+	}),
 };
 
+CreateCommand.args = Array(MAX_ARG_NUM)
+	.fill()
+	.map(i => ({
+		name: `${i}_arg`,
+	}));
+
 CreateCommand.description = `
-Gets transaction information from the blockchain.
+Create transaction.
 `;
 
 CreateCommand.examples = [
-	'transaction:get 10041151099734832021',
-	'transaction:get 10041151099734832021,1260076503909567890',
+	'transaction:create --type=0 100 13356260975429434553L',
+	'transaction:create --type=delegate username',
 ];
