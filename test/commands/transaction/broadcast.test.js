@@ -94,16 +94,6 @@ describe('transaction:broadcast', () => {
 			});
 	});
 
-	describe('transaction:broadcast transaction --second-public-key', () => {
-		setupStub()
-			.stdout()
-			.command(['transaction:broadcast'])
-			.catch(error =>
-				expect(error.message).to.contain('No transaction was provided.'),
-			)
-			.it('should throw an error');
-	});
-
 	describe('transaction | transaction:broadcast', () => {
 		setupStub()
 			.stdout()
