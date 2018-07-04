@@ -16,33 +16,81 @@
 import { expect, test } from '../../test';
 import * as config from '../../../src/utils/config';
 import * as print from '../../../src/utils/print';
+import TransferCommand from '../../../src/commands/transaction/create/transfer';
+import SecondpassphraseCommand from '../../../src/commands/transaction/create/secondpassphrase';
+import VoteCommand from '../../../src/commands/transaction/create/vote';
+import DelegateCommand from '../../../src/commands/transaction/create/delegate';
+import MultisignatureCommand from '../../../src/commands/transaction/create/multisignature';
 
-describe('config:show', () => {
-	const defaultConfig = {
-		api: {
-			network: 'main',
-			nodes: ['http://localhost:4000'],
-		},
-	};
-
+describe('transaction:create', () => {
 	const printMethodStub = sandbox.stub();
-	const setupStub = test
-		.stub(print, 'default', sandbox.stub().returns(printMethodStub))
-		.stub(config, 'getConfig', sandbox.stub().returns(defaultConfig));
+	const setupStub = () =>
+		test
+			.stub(print, 'default', sandbox.stub().returns(printMethodStub))
+			.stub(config, 'getConfig', sandbox.stub().returns({}))
+			.stub(TransferCommand, 'run', sandbox.stub())
+			.stub(SecondpassphraseCommand, 'run', sandbox.stub())
+			.stub(VoteCommand, 'run', sandbox.stub())
+			.stub(DelegateCommand, 'run', sandbox.stub())
+			.stub(MultisignatureCommand, 'run', sandbox.stub());
 
-	setupStub
-		.stdout()
-		.command(['config:show'])
-		.it('should call print with the user config', () => {
-			expect(print.default).to.be.called;
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+	describe('transaction:create', () => {
+		setupStub()
+			.command(['transaction:create'])
+			.catch(error => expect(error.message).to.contain('Missing required flag'))
+			.it('should throw an error when type is not provided');
+	});
 
-	setupStub
-		.stdout()
-		.command(['config:show', '--json', '--pretty'])
-		.it('should call print with json', () => {
-			expect(print.default).to.be.calledWith({ json: true, pretty: true });
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+	describe('transaction:create --type=xxx', () => {
+		setupStub()
+			.command(['transaction:create', '--type=wrongtype'])
+			.catch(error =>
+				expect(error.message).to.contain(
+					'Expected --type=wrongtype to be one of',
+				),
+			)
+			.it('should throw an error when type is not in the options');
+
+		setupStub()
+			.command(['transaction:create', '--type=0'])
+			.it('should call type 0 command', () => {
+				return expect(TransferCommand.run).to.be.calledWithExactly([]);
+			});
+
+		setupStub()
+			.command(['transaction:create', '-t=secondpassphrase', '--no-json'])
+			.it('should call type 1 command', () => {
+				return expect(SecondpassphraseCommand.run).to.be.calledWithExactly([
+					'--no-json',
+				]);
+			});
+
+		setupStub()
+			.command(['transaction:create', '-t=vote', '--votes=xxx,xxx'])
+			.it('should call type 2 command', () => {
+				return expect(VoteCommand.run).to.be.calledWithExactly([
+					'--votes',
+					'xxx,xxx',
+				]);
+			});
+
+		setupStub()
+			.command(['transaction:create', '-t=delegate', '--json', 'username'])
+			.it('should call type 3 command', () => {
+				return expect(DelegateCommand.run).to.be.calledWithExactly([
+					'username',
+					'--json',
+				]);
+			});
+
+		setupStub()
+			.command(['transaction:create', '-t=4', '24', '2', 'itshouldbe,hex'])
+			.it('should call type 3 command', () => {
+				return expect(MultisignatureCommand.run).to.be.calledWithExactly([
+					'24',
+					'2',
+					'itshouldbe,hex',
+				]);
+			});
+	});
 });
