@@ -39,6 +39,11 @@ const processVotes = votes =>
 		.filter(Boolean)
 		.map(vote => vote.trim());
 
+const validatePublicKeys = inputs => {
+	elements.transaction.utils.validatePublicKeys(inputs);
+	return inputs;
+};
+
 export default class VoteCommand extends BaseCommand {
 	async run() {
 		const {
@@ -71,14 +76,10 @@ export default class VoteCommand extends BaseCommand {
 			: null;
 
 		const validatedVotes = processedVotesInput
-			? elements.transaction.utils.validatePublicKeys(
-					processVotes(processedVotesInput),
-				)
+			? validatePublicKeys(processVotes(processedVotesInput))
 			: [];
 		const validatedUnvotes = processedUnvotesInput
-			? elements.transaction.utils.validatePublicKeys(
-					processVotes(processedUnvotesInput),
-				)
+			? validatePublicKeys(processVotes(processedUnvotesInput))
 			: [];
 
 		const processFunction = processInputs(validatedVotes, validatedUnvotes);

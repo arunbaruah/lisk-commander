@@ -13,36 +13,169 @@
  * Removal or modification of this copyright notice is prohibited.
  *
  */
+import * as elements from 'lisk-elements';
 import { expect, test } from '../../../test';
 import * as config from '../../../../src/utils/config';
 import * as print from '../../../../src/utils/print';
+import * as getInputsFromSources from '../../../../src/utils/input';
 
-describe('config:show', () => {
-	const defaultConfig = {
-		api: {
-			network: 'main',
-			nodes: ['http://localhost:4000'],
-		},
+describe('transaction:create:delegate', () => {
+	const defaultUsername = 'user-light';
+	const defaultInputs = {
+		passphrase: '123',
+		secondPassphrase: '456',
+	};
+	const defaultTransaction = {
+		amount: '10000000000',
+		recipientId: '123L',
+		senderPublicKey: null,
+		timestamp: 66492418,
+		type: 0,
+		fee: '10000000',
+		recipientPublicKey: null,
+		asset: {},
 	};
 
 	const printMethodStub = sandbox.stub();
-	const setupStub = test
-		.stub(print, 'default', sandbox.stub().returns(printMethodStub))
-		.stub(config, 'getConfig', sandbox.stub().returns(defaultConfig));
 
-	setupStub
-		.stdout()
-		.command(['config:show'])
-		.it('should call print with the user config', () => {
-			expect(print.default).to.be.called;
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+	const setupStub = () =>
+		test
+			.stub(print, 'default', sandbox.stub().returns(printMethodStub))
+			.stub(config, 'getConfig', sandbox.stub().returns({}))
+			.stub(
+				elements.default.transaction,
+				'registerDelegate',
+				sandbox.stub().returns(defaultTransaction),
+			)
+			.stub(
+				getInputsFromSources,
+				'default',
+				sandbox.stub().resolves(defaultInputs),
+			);
 
-	setupStub
-		.stdout()
-		.command(['config:show', '--json', '--pretty'])
-		.it('should call print with json', () => {
-			expect(print.default).to.be.calledWith({ json: true, pretty: true });
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+	describe('transaction:create:delegate', () => {
+		setupStub()
+			.stdout()
+			.command(['transaction:create:delegate'])
+			.catch(error =>
+				expect(error.message).to.contain('Missing 1 required arg'),
+			)
+			.it('should throw an error');
+	});
+
+	describe('transaction:create:delegate username', () => {
+		setupStub()
+			.stdout()
+			.command(['transaction:create:delegate', defaultUsername])
+			.it('create a transaction with the username', () => {
+				expect(getInputsFromSources.default).to.be.calledWithExactly({
+					passphrase: {
+						source: undefined,
+						repeatPrompt: true,
+					},
+					secondPassphrase: null,
+				});
+				expect(
+					elements.default.transaction.registerDelegate,
+				).to.be.calledWithExactly({
+					passphrase: defaultInputs.passphrase,
+					secondPassphrase: defaultInputs.secondPassphrase,
+					username: defaultUsername,
+				});
+				return expect(printMethodStub).to.be.calledWithExactly(
+					defaultTransaction,
+				);
+			});
+	});
+
+	describe('transaction:create:delegate username --passphrase=xxx', () => {
+		setupStub()
+			.stdout()
+			.command([
+				'transaction:create:delegate',
+				defaultUsername,
+				'--passphrase=pass:123',
+			])
+			.it(
+				'create a transaction with the username with the passphrase from flag',
+				() => {
+					expect(getInputsFromSources.default).to.be.calledWithExactly({
+						passphrase: {
+							source: 'pass:123',
+							repeatPrompt: true,
+						},
+						secondPassphrase: null,
+					});
+					expect(
+						elements.default.transaction.registerDelegate,
+					).to.be.calledWithExactly({
+						passphrase: defaultInputs.passphrase,
+						secondPassphrase: defaultInputs.secondPassphrase,
+						username: defaultUsername,
+					});
+					return expect(printMethodStub).to.be.calledWithExactly(
+						defaultTransaction,
+					);
+				},
+			);
+	});
+
+	describe('transaction:create:delegate username --passphrase=xxx --second-passphrase=xxx', () => {
+		setupStub()
+			.stdout()
+			.command([
+				'transaction:create:delegate',
+				defaultUsername,
+				'--passphrase=pass:123',
+				'--second-passphrase=pass:456',
+			])
+			.it(
+				'create a transaction with the username and the passphrase and second passphrase from the flag',
+				() => {
+					expect(getInputsFromSources.default).to.be.calledWithExactly({
+						passphrase: {
+							source: 'pass:123',
+							repeatPrompt: true,
+						},
+						secondPassphrase: {
+							source: 'pass:456',
+							repeatPrompt: true,
+						},
+					});
+					expect(
+						elements.default.transaction.registerDelegate,
+					).to.be.calledWithExactly({
+						passphrase: defaultInputs.passphrase,
+						secondPassphrase: defaultInputs.secondPassphrase,
+						username: defaultUsername,
+					});
+					return expect(printMethodStub).to.be.calledWithExactly(
+						defaultTransaction,
+					);
+				},
+			);
+	});
+
+	describe('transaction:create:delegate username --no-signature', () => {
+		setupStub()
+			.stdout()
+			.command([
+				'transaction:create:delegate',
+				defaultUsername,
+				'--no-signature',
+			])
+			.it('create a transaction with the username without signature', () => {
+				expect(
+					elements.default.transaction.registerDelegate,
+				).to.be.calledWithExactly({
+					passphrase: null,
+					secondPassphrase: null,
+					username: defaultUsername,
+				});
+				expect(getInputsFromSources.default).not.to.be.called;
+				return expect(printMethodStub).to.be.calledWithExactly(
+					defaultTransaction,
+				);
+			});
+	});
 });

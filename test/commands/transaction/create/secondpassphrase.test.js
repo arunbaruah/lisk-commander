@@ -13,36 +13,148 @@
  * Removal or modification of this copyright notice is prohibited.
  *
  */
+import * as elements from 'lisk-elements';
 import { expect, test } from '../../../test';
 import * as config from '../../../../src/utils/config';
 import * as print from '../../../../src/utils/print';
+import * as getInputsFromSources from '../../../../src/utils/input';
 
-describe('config:show', () => {
-	const defaultConfig = {
-		api: {
-			network: 'main',
-			nodes: ['http://localhost:4000'],
-		},
+describe('transaction:create:secondpassphrase', () => {
+	const defaultInputs = {
+		passphrase: '123',
+		secondPassphrase: '456',
+	};
+	const defaultTransaction = {
+		amount: '10000000000',
+		recipientId: '123L',
+		senderPublicKey: null,
+		timestamp: 66492418,
+		type: 0,
+		fee: '10000000',
+		recipientPublicKey: null,
+		asset: {},
 	};
 
 	const printMethodStub = sandbox.stub();
-	const setupStub = test
-		.stub(print, 'default', sandbox.stub().returns(printMethodStub))
-		.stub(config, 'getConfig', sandbox.stub().returns(defaultConfig));
 
-	setupStub
-		.stdout()
-		.command(['config:show'])
-		.it('should call print with the user config', () => {
-			expect(print.default).to.be.called;
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+	const setupStub = () =>
+		test
+			.stub(print, 'default', sandbox.stub().returns(printMethodStub))
+			.stub(config, 'getConfig', sandbox.stub().returns({}))
+			.stub(
+				elements.default.transaction,
+				'registerSecondPassphrase',
+				sandbox.stub().returns(defaultTransaction),
+			)
+			.stub(
+				getInputsFromSources,
+				'default',
+				sandbox.stub().resolves(defaultInputs),
+			);
 
-	setupStub
-		.stdout()
-		.command(['config:show', '--json', '--pretty'])
-		.it('should call print with json', () => {
-			expect(print.default).to.be.calledWith({ json: true, pretty: true });
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+	describe('transaction:create:secondpassphrase', () => {
+		setupStub()
+			.stdout()
+			.command(['transaction:create:secondpassphrase'])
+			.it('should create second passphrase transaction', () => {
+				expect(getInputsFromSources.default).to.be.calledWithExactly({
+					passphrase: {
+						source: undefined,
+						repeatPrompt: true,
+					},
+					secondPassphrase: {
+						source: undefined,
+						repeatPrompt: true,
+					},
+				});
+				expect(
+					elements.default.transaction.registerSecondPassphrase,
+				).to.be.calledWithExactly(defaultInputs);
+				return expect(printMethodStub).to.be.calledWithExactly(
+					defaultTransaction,
+				);
+			});
+	});
+
+	describe('transaction:create:secondpassphrase --passphrase=xxx', () => {
+		setupStub()
+			.stdout()
+			.command(['transaction:create:secondpassphrase', '--passphrase=pass:123'])
+			.it(
+				'should create second passphrase transaction with passphrase from flag',
+				() => {
+					expect(getInputsFromSources.default).to.be.calledWithExactly({
+						passphrase: {
+							source: 'pass:123',
+							repeatPrompt: true,
+						},
+						secondPassphrase: {
+							source: undefined,
+							repeatPrompt: true,
+						},
+					});
+					expect(
+						elements.default.transaction.registerSecondPassphrase,
+					).to.be.calledWithExactly(defaultInputs);
+					return expect(printMethodStub).to.be.calledWithExactly(
+						defaultTransaction,
+					);
+				},
+			);
+	});
+
+	describe('transaction:create:secondpassphrase --passphrase=xxx --second-passphrase=xxx', () => {
+		setupStub()
+			.stdout()
+			.command([
+				'transaction:create:secondpassphrase',
+				'--passphrase=pass:123',
+				'--second-passphrase=pass:456',
+			])
+			.it(
+				'should create second passphrase transaction with passphrase and second passphrase from flag',
+				() => {
+					expect(getInputsFromSources.default).to.be.calledWithExactly({
+						passphrase: {
+							source: 'pass:123',
+							repeatPrompt: true,
+						},
+						secondPassphrase: {
+							source: 'pass:456',
+							repeatPrompt: true,
+						},
+					});
+					expect(
+						elements.default.transaction.registerSecondPassphrase,
+					).to.be.calledWithExactly(defaultInputs);
+					return expect(printMethodStub).to.be.calledWithExactly(
+						defaultTransaction,
+					);
+				},
+			);
+	});
+
+	describe('transaction:create:secondpassphrase --no-signature', () => {
+		setupStub()
+			.stdout()
+			.command(['transaction:create:secondpassphrase', '--no-signature'])
+			.it(
+				'should create second passphrase transaction withoug passphrase',
+				() => {
+					expect(getInputsFromSources.default).to.be.calledWithExactly({
+						passphrase: null,
+						secondPassphrase: {
+							source: undefined,
+							repeatPrompt: true,
+						},
+					});
+					expect(
+						elements.default.transaction.registerSecondPassphrase,
+					).to.be.calledWithExactly(defaultInputs);
+					return expect(printMethodStub).to.be.calledWithExactly(
+						defaultTransaction,
+					);
+				},
+			);
+	});
 });

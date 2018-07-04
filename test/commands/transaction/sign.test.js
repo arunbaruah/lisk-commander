@@ -20,8 +20,6 @@ import * as print from '../../../src/utils/print';
 import * as inputUtils from '../../../src/utils/input/utils';
 import * as getInputsFromSources from '../../../src/utils/input';
 
-process.env.TEST_OUTPUT = 1;
-
 describe('transaction:sign', () => {
 	const defaultTransaction = {
 		amount: '10000000000',

@@ -88,11 +88,9 @@ const options = {
 	},
 	unvotes: {
 		description: unvotesDescription,
-		parse: input => input.split(','),
 	},
 	votes: {
 		description: votesDescription,
-		parse: input => input.split(','),
 	},
 };
 

@@ -13,36 +13,178 @@
  * Removal or modification of this copyright notice is prohibited.
  *
  */
+import * as elements from 'lisk-elements';
 import { expect, test } from '../../../test';
 import * as config from '../../../../src/utils/config';
 import * as print from '../../../../src/utils/print';
+import * as getInputsFromSources from '../../../../src/utils/input';
 
-describe('config:show', () => {
-	const defaultConfig = {
-		api: {
-			network: 'main',
-			nodes: ['http://localhost:4000'],
-		},
+describe('transaction:create:transfer', () => {
+	const defaultAmount = '1';
+	const defaultAddress = '123L';
+	const defaultInputs = {
+		passphrase: '123',
+		secondPassphrase: '456',
+	};
+	const defaultTransaction = {
+		amount: '10000000000',
+		recipientId: '123L',
+		senderPublicKey: null,
+		timestamp: 66492418,
+		type: 0,
+		fee: '10000000',
+		recipientPublicKey: null,
+		asset: {},
 	};
 
 	const printMethodStub = sandbox.stub();
-	const setupStub = test
-		.stub(print, 'default', sandbox.stub().returns(printMethodStub))
-		.stub(config, 'getConfig', sandbox.stub().returns(defaultConfig));
+	const transactionUtilStub = {
+		validateAddress: sandbox.stub().returns(true),
+		convertLSKToBeddows: sandbox.stub().returns(defaultTransaction.amount),
+	};
 
-	setupStub
-		.stdout()
-		.command(['config:show'])
-		.it('should call print with the user config', () => {
-			expect(print.default).to.be.called;
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+	const setupStub = () =>
+		test
+			.stub(print, 'default', sandbox.stub().returns(printMethodStub))
+			.stub(config, 'getConfig', sandbox.stub().returns({}))
+			.stub(
+				elements.default.transaction,
+				'transfer',
+				sandbox.stub().returns(defaultTransaction),
+			)
+			.stub(elements.default.transaction, 'utils', transactionUtilStub)
+			.stub(
+				getInputsFromSources,
+				'default',
+				sandbox.stub().resolves(defaultInputs),
+			);
 
-	setupStub
-		.stdout()
-		.command(['config:show', '--json', '--pretty'])
-		.it('should call print with json', () => {
-			expect(print.default).to.be.calledWith({ json: true, pretty: true });
-			return expect(printMethodStub).to.be.calledWithExactly(defaultConfig);
-		});
+	describe('transaction:create:transfer', () => {
+		setupStub()
+			.stdout()
+			.command(['transaction:create:transfer'])
+			.catch(error =>
+				expect(error.message).to.contain('Missing 2 required args'),
+			)
+			.it('should throw an error');
+	});
+
+	describe('transaction:create:transfer amount', () => {
+		setupStub()
+			.stdout()
+			.command(['transaction:create:transfer', defaultAmount])
+			.catch(error =>
+				expect(error.message).to.contain('Missing 1 required arg'),
+			)
+			.it('should throw an error');
+	});
+
+	describe('transaction:create:transfer amount address', () => {
+		setupStub()
+			.stdout()
+			.command(['transaction:create:transfer', defaultAmount, defaultAddress])
+			.it('should create an tranfer transaction', () => {
+				expect(transactionUtilStub.validateAddress).to.be.calledWithExactly(
+					defaultAddress,
+				);
+				expect(transactionUtilStub.convertLSKToBeddows).to.be.calledWithExactly(
+					defaultAmount,
+				);
+				expect(getInputsFromSources.default).to.be.calledWithExactly({
+					passphrase: {
+						source: undefined,
+						repeatPrompt: true,
+					},
+					secondPassphrase: null,
+				});
+				return expect(printMethodStub).to.be.calledWithExactly(
+					defaultTransaction,
+				);
+			});
+	});
+
+	describe('transaction:create:transfer amount address --no-signature', () => {
+		setupStub()
+			.stdout()
+			.command([
+				'transaction:create:transfer',
+				defaultAmount,
+				defaultAddress,
+				'--no-signature',
+			])
+			.it('should create an tranfer transaction without signature', () => {
+				expect(transactionUtilStub.validateAddress).to.be.calledWithExactly(
+					defaultAddress,
+				);
+				expect(transactionUtilStub.convertLSKToBeddows).to.be.calledWithExactly(
+					defaultAmount,
+				);
+				expect(getInputsFromSources.default).not.to.be.called;
+				return expect(printMethodStub).to.be.calledWithExactly(
+					defaultTransaction,
+				);
+			});
+	});
+
+	describe('transaction:create:transfer amount address --passphrase=xxx', () => {
+		setupStub()
+			.stdout()
+			.command([
+				'transaction:create:transfer',
+				defaultAmount,
+				defaultAddress,
+				'--passphrase=pass:123',
+			])
+			.it('should create an tranfer transaction', () => {
+				expect(transactionUtilStub.validateAddress).to.be.calledWithExactly(
+					defaultAddress,
+				);
+				expect(transactionUtilStub.convertLSKToBeddows).to.be.calledWithExactly(
+					defaultAmount,
+				);
+				expect(getInputsFromSources.default).to.be.calledWithExactly({
+					passphrase: {
+						source: 'pass:123',
+						repeatPrompt: true,
+					},
+					secondPassphrase: null,
+				});
+				return expect(printMethodStub).to.be.calledWithExactly(
+					defaultTransaction,
+				);
+			});
+	});
+
+	describe('transaction:create:transfer amount address --passphrase=xxx --second-passphrase=xxx', () => {
+		setupStub()
+			.stdout()
+			.command([
+				'transaction:create:transfer',
+				defaultAmount,
+				defaultAddress,
+				'--passphrase=pass:123',
+				'--second-passphrase=pass:456',
+			])
+			.it('should create an tranfer transaction', () => {
+				expect(transactionUtilStub.validateAddress).to.be.calledWithExactly(
+					defaultAddress,
+				);
+				expect(transactionUtilStub.convertLSKToBeddows).to.be.calledWithExactly(
+					defaultAmount,
+				);
+				expect(getInputsFromSources.default).to.be.calledWithExactly({
+					passphrase: {
+						source: 'pass:123',
+						repeatPrompt: true,
+					},
+					secondPassphrase: {
+						source: 'pass:456',
+						repeatPrompt: true,
+					},
+				});
+				return expect(printMethodStub).to.be.calledWithExactly(
+					defaultTransaction,
+				);
+			});
+	});
 });
